@@ -135,7 +135,9 @@ function check () {
         }
 
         if (killOnSight) {
-          return die(pid);
+          die(pid);
+          reRun();
+          return;
         }
 
         log("Showing notification");
