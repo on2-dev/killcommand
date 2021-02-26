@@ -23,7 +23,7 @@ killcommand
 Available options:
 
 | Option, Alias | Description  |
-| ------------- |:-------------:|
+| ------------- |:-------------|
 |   --help, -h         | Show this help content
 |   --version, -v      | Shows the current version
 |   --verbose          | Show log/debugging messages
