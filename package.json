@@ -1,0 +1,15 @@
+{
+  "preferGlobal": true,
+  "name": "killcommand",
+  "bin": { "killcommand": "./index.js" },
+  "main": "./index.js",
+  "version": "0.0.1",
+  "dependencies": {
+    "arg": "^5.0.0",
+    "fkill": "^7.1.0",
+    "node-notifier": "^9.0.0"
+  },
+  "scripts": {
+    "start": "node ./index.js"
+  }
+}
