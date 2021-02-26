@@ -57,7 +57,7 @@ Available options:
 
   Examples:
 
-  overkill --alert=50 --limit=80 --ignore=gimp --ignore=blender
+  killcommand --alert=50 --limit=80 --ignore=gimp --ignore=blender
 `);
 
   return;
@@ -117,7 +117,7 @@ function check () {
         log(`Found ${program}`);
 
         let killOnSight = false;
-        if (usage > cpuLimit) {
+        if (cpuLimit && usage > cpuLimit) {
           killOnSight = true;
           log(`This also corsses the upper limit (${cpuThreshold}) and should be automatically killed`);
         }
