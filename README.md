@@ -1,6 +1,13 @@
 # Kill Command
 
-Will alert or kill processes that cross the limit!
+<div style="text-align:center">
+  <img src="https://github.com/on2-dev/killcommand/blob/main/killcommand-header.png?raw=true" title="Looking for the new victim" alt="" />
+</div>
+
+
+So, I heard some processes of yours aren't behaving!  
+I will hunt the ones that cross the line and let you know. And if you want them gone, just trust your friend here.
+
 You can specify the threshold to be alerted when any process corsses the line,
 or even define a limit which should kill any process that dares crossing it!
 
@@ -38,3 +45,7 @@ Available options:
 ```sh
 killcommand --alert=50 --limit=80 --ignore=gimp --ignore=blender
 ```
+
+#### Image credits
+
+Header: <a href='https://br.freepik.com/vetores/homem'>Homem vetor criado por freepik - br.freepik.com</a></sub></small>
