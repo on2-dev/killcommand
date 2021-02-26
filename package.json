@@ -3,7 +3,7 @@
   "name": "killcommand",
   "bin": { "killcommand": "./index.js" },
   "main": "./index.js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "dependencies": {
     "arg": "^5.0.0",
     "fkill": "^7.1.0",
