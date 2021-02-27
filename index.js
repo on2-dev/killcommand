@@ -1,9 +1,15 @@
 const { spawn } = require('child_process');
+const path = require('path');
 const { exec } = require("child_process");
 const arg = require('arg');
 const fkill = require('fkill');
 
 const notifier = require('node-notifier');
+// const NotificationCenter = require('node-notifier').NotificationCenter;
+// const notifier = new NotificationCenter({
+//   withFallback: true, // Use Growl Fallback if <= 10.8
+//   customPath: path.join(__dirname, "terminal-notifier.app") // Relative/Absolute path to binary if you want to use your own fork of terminal-notifier
+// });
 
 const console = require('console');
 
@@ -113,7 +119,7 @@ function check () {
           return;
         }
         
-        const program = stdout.substr(stdout.lastIndexOf('/') + 1);
+        const program = stdout.substr(stdout.lastIndexOf('/') + 1).trim();
         log(`Found ${program}`);
 
         let killOnSight = false;
@@ -143,12 +149,20 @@ function check () {
         log("Showing notification");
         notifier.notify(
           {
+            id: 123,
+            remove: 123,
             title: `Should I kill it?`,
-            message: `${program} (${pid}) is consuming ${usage}% of your CPU`,
+            message: `${program} (pid ${pid}) is consuming ${usage}% of your CPU`,
             sound: true,
             wait: true,
-            timeout: 50,
-            // closeLabel: false,
+            // time: 50000,
+            timeout: 5000,
+            type: 'warn',
+            contentImage: "https://github.com/on2-dev/killcommand/raw/main/killcommand-header.png?raw=true",
+            icon: path.join(__dirname, "killcommand-header.png"),
+            open: undefined,
+            closeLabel: undefined,
+            dropdownLabel: undefined,
             actions: ["Kill it!", "Show mercy", "Ignore it from now on"],
             sound: "glass" //Sosumi, Basso, Blow, Bottle, Frog, Funk, Glass, Hero, Morse, Ping, Pop, Purr, Submarine, Tink
           },
@@ -158,12 +172,12 @@ function check () {
             if (response === 'activate') {
               if (metadata.activationValue === "Ignore it from now on") {
                 ignoredList.push(pid);
-                return;
+                return reRun();
               }
 
               if (metadata.activationValue === "Kill it!") {
                 die(pid);
-                return;
+                return reRun();
               }
 
               // otherwise, we simply show it some mercy ... for now!
