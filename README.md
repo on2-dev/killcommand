@@ -49,3 +49,15 @@ killcommand --alert=50 --limit=80 --ignore=gimp --ignore=blender
 #### Image credits
 
 Header: <a href='https://br.freepik.com/vetores/homem'>Homem vetor criado por freepik - br.freepik.com</a></sub></small>
+
+
+# Contribute
+
+- By sending Pull Requests
+- By sending feedback or opening the issues
+- By donating:
+
+Buy us a beer :)
+
+BTC: 1GuTME1bGbk7hY7ssrUBh3M1k4AeyVCSjW<br/>
+ETH: 0x49f1612d4a8e9165f2eb94be79af9dbbf3815af5
