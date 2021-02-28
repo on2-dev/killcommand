@@ -1,75 +1,33 @@
 #!/usr/bin/env node
-
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
-const { exec } = require("child_process");
 const arg = require('arg');
 const fkill = require('fkill');
 
 const notifier = require('node-notifier');
+
+const DEFAULT_CPU_THRESHOLD = 75;
+const DEFAULT_CPU_LIMIT = 0;
+const DEFAULT_INTERVAL = 5;
+
 // const NotificationCenter = require('node-notifier').NotificationCenter;
 // const notifier = new NotificationCenter({
 //   withFallback: true, // Use Growl Fallback if <= 10.8
 //   customPath: path.join(__dirname, "terminal-notifier.app") // Relative/Absolute path to binary if you want to use your own fork of terminal-notifier
 // });
 
-const console = require('console');
-
-const DEFAULT_CPU_THRESHOLD = 75;
-const DEFAULT_CPU_LIMIT = 0;
-const DEFAULT_INTERVAL = 5;
 let waiting = false;
 
 const commands = {
 	// Types
-	'--help'         : Boolean,
-	'--version'      : Boolean,
 	'--verbose'      : Boolean,
 	'--cpu-alert'    : Number,
 	'--cpu-limit'    : Number,
-	'--mem-alert'    : [String],
-	'--mem-limit'    : [String],
 	'--interval'     : Number,
 	'--ignore'       : [String],
 	'--alert-ignored': Boolean,
-
-	// Aliases
-	'-v':        '--version',
-	'-h':        '--help',
-	'-i':        '--ignore',
-	'--alert':   '--cpu-alert',
-	'--limit':   '--cpu-limit',
 };
 const args = arg(commands);
-
-if (args['--help']) {
-  console.log(`
-Will alert or kill processes that cross the limit!
-You can specify the threshold to be alerted when any process corsses the line,
-or even define a limit which should kill any process that dares crossing it!
-
-Available options:
-
-  --help, -h         Show this help content
-  --version, -v      Shows the current version
-  --verbose          Show log/debugging messages
-  --alert <Int>      If any process passes this <Int>%, the alert is triggered
-                     Default is ${DEFAULT_CPU_THRESHOLD}%
-  --limit <Int>      If any process passes this <Int>%, it is killed on sight
-                     Default is ${DEFAULT_CPU_LIMIT}%
-  --interval <Int>   Interval time (in seconds) for checking top processes
-                     Default is ${DEFAULT_INTERVAL}
-  --ignore [Str]     A list of programs that are ignore
-  --alert-ignored    Should show the alert, even for ignored programs when they
-                     cross the line?
-
-  Examples:
-
-  killcommand --alert=50 --limit=80 --ignore=gimp --ignore=blender
-`);
-
-  return;
-}
 
 let ignoredList = args['--ignore'] || [];
 
@@ -92,6 +50,10 @@ const cpuThreshold = args['--cpu-alert'] || DEFAULT_CPU_THRESHOLD;
 // const memThreshold = args['--mem-alert'] || DEFAULT_MEM_THRESHOLD;
 
 function check () {
+  if (waiting) {
+    return; // reRun();
+  }
+
   const args = [
     '-c',
     `ps aux | sort -k 3,3 | tail -n 1`
@@ -108,7 +70,6 @@ function check () {
     log(`Current top proccess is ${pid}, consumming ${usage}% of CPU`);
 
     if (usage > cpuThreshold) {
-      waiting = true;
       log(`This corsses the threshold limit for alerts (${cpuThreshold})`);
       exec(`ps -p ${pid} -o comm=`, (error, stdout, stderr) => {
         log(`Looking up for ${pid}'s name`);
@@ -116,6 +77,7 @@ function check () {
           console.log(`error: ${error.message}`);
           return;
         }
+
         if (stderr) {
           console.log(`stderr: ${stderr}`);
           return;
@@ -131,34 +93,35 @@ function check () {
         }
 
         if (
-          ignoredList.includes(program) || ignoredList.includes(pid)
+          isIgnored(program, pid)
         ) {
           log(`Program ${program} is in the ignore list.`);
           if (args['--alert-ignored']) {
             log(`But as alert-ignored is true, an alert will be triggered`);
             killOnSight = false;
           } else {
-            return reRun();
+            return;// reRun();
           }
         }
 
         if (killOnSight) {
           die(pid);
-          reRun();
+          // reRun();
           return;
         }
 
         log("Showing notification");
+        waiting = true;
         notifier.notify(
           {
-            id: 123,
-            remove: 123,
+            id: pid,
+            // remove: 123,
             title: `Should I kill it?`,
             message: `${program} (pid ${pid}) is consuming ${usage}% of your CPU`,
             sound: true,
             wait: true,
             // time: 50000,
-            timeout: 5000,
+            timeout: 50000,
             type: 'warn',
             contentImage: "https://github.com/on2-dev/killcommand/raw/main/killcommand-header.png?raw=true",
             icon: path.join(__dirname, "killcommand-header.png"),
@@ -174,20 +137,24 @@ function check () {
             if (response === 'activate') {
               if (metadata.activationValue === "Ignore it from now on") {
                 ignoredList.push(pid);
-                return reRun();
+                log(`Will ignore ${pid} from now on (${program})`)
+                return; // reRun();
               }
 
               if (metadata.activationValue === "Kill it!") {
                 die(pid);
-                return reRun();
+                return; // reRun();
               }
 
               // otherwise, we simply show it some mercy ... for now!
             }
-            reRun();
+            // reRun();
           }
         );
       });
+    } {
+      log('Top process is behaving well', waiting);
+      // reRun();
     }
   });
 
@@ -196,12 +163,31 @@ function check () {
   });
   
   p.on('close', (code) => {
-    log("Finished, scheduled for the next 5 seconds");
-    if (!waiting) {
-      reRun();
-    }
-    delete p;
+    console.log('');
+    console.log('CLOSED');
+    console.log('');
+  //   log("Finished, scheduled for the next 5 seconds");
+  //   if (!waiting) {
+  //     reRun();
+  //   }
+  //   delete p;
   });
+}
+
+function isIgnored (program, pid) {
+  const found = ignoredList.find(ignored => {
+    if (pid && ignored === pid) {
+      return true;
+    }
+
+    const rx = new RegExp(`^${ignored.replace(/\%/g, '(.*)?')}$`, 'i');
+    if (program.match(rx)) {
+      return true;
+    }
+    return false;
+  });
+
+  return !!found;
 }
 
 async function die (pid, programName) {
@@ -216,8 +202,8 @@ async function die (pid, programName) {
   }
 }
 
-function reRun () {
-  setTimeout(check, (args['--interval'] || DEFAULT_INTERVAL) * 1000);
-}
+// function reRun () {
+  // setTimeout(check, (args['--interval'] || DEFAULT_INTERVAL) * 1000);
+// }
 
-check();
+setInterval(check, (args['--interval'] || DEFAULT_INTERVAL) * 1000);

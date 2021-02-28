@@ -15,14 +15,12 @@ or even define a limit which should kill any process that dares crossing it!
 
 ```sh
 npm install -g killcommand
-# or
-yarn global add killcommand
 ```
 
 ## Running it
 
 ```sh
-killcommand
+killcommand [--options]
 ```
 
 ## Options
@@ -46,6 +44,16 @@ Available options:
 killcommand --alert=50 --limit=80 --ignore=gimp --ignore=blender
 ```
 
+### Developing
+
+If you want to run it locally while applying changes to it, you can clone the project, then run it like this:
+
+```sh
+node ./cli.js --interactive --verbose [--other-options]
+```
+
+> This way you can see the logs and abort it more easily.
+
 #### Image credits
 
 Header: <a href='https://br.freepik.com/vetores/homem'>Homem vetor criado por freepik - br.freepik.com</a></sub></small>
@@ -57,9 +65,7 @@ Header: <a href='https://br.freepik.com/vetores/homem'>Homem vetor criado por fr
 - By sending feedback or opening the issues
 - By donating:
 
-Buy us a beer :)
+Buy us a coffee :)
 
 BTC: 1GuTME1bGbk7hY7ssrUBh3M1k4AeyVCSjW<br/>
 ETH: 0x49f1612d4a8e9165f2eb94be79af9dbbf3815af5
-
-

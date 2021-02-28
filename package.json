@@ -1,22 +1,43 @@
 {
-  "main": "./index.js",
-  "version": "0.0.5",
-  "preferGlobal": true,
-  "keywords": ["kill", "process", "pid", "command", "terminal", "cli", "performance", "free", "cpu", "memory"],
   "name": "killcommand",
-  "bin": { "killcommand": "./index.js" },
+  "bin": {
+    "killcommand": "./cli.js"
+  },
+  "main": "./cli.js",
+  "version": "0.0.6",
+  "preferGlobal": true,
+  "keywords": [
+    "kill",
+    "process",
+    "pid",
+    "command",
+    "terminal",
+    "cli",
+    "performance",
+    "free",
+    "cpu",
+    "memory"
+  ],
   "homepage": "https://github.com/on2-dev/killcommand",
   "repository": {
     "type": "git",
     "url": "https://github.com/on2-dev/killcommand"
   },
-  "license" : "MIT",
+  "license": "MIT",
   "dependencies": {
     "arg": "^5.0.0",
     "fkill": "^7.1.0",
+    "forever": "^3.0.4",
+    "forever-monitor": "^3.0.3",
     "node-notifier": "^9.0.0"
   },
   "scripts": {
-    "start": "node ./index.js"
+    "interactive": "node ./index.js",
+    "start": "forever start --minUptime 5100 --spinSleepTime 6000 -o ./forever/logs/running.log -e ./forever/logs/error-running.log --id killcommand ./index.js",
+    "stop": "forever stop killcommand",
+    "ls": "forever list",
+    "??stop": "node ./cli.js --stop",
+    "??ls": "node ./cli.js --ls",
+    "start:interactive": "node ./index.js"
   }
 }
