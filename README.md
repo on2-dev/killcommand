@@ -36,19 +36,38 @@ Available options:
 
 | Option, Alias | Description  |
 | ------------- |:-------------|
-|   --help, -h         | Show this help content
-|   --version, -v      | Shows the current version
-|   --verbose          | Show log/debugging messages
-|   --alert <Int>      | If any process passes this <Int>%, the alert is triggered<br/>Default is 75%
-|   --limit <Int>      | If any process passes this <Int>%, it is killed on sight<br/>Default is 0% (use 0 to disable this option)
-|   --interval <Int>   | Interval time (in seconds) for checking top processes<br/>Default is 5
-|   --ignore [Str]     | A list of programs that are ignore
-|   --alert-ignored    | Should show the alert, even for ignored programs when they.<br/>cross the line?
+|   --stop             | Stops the current daemon, if any |
+|   --list             | Shows information on currently running daemon |
+|   --help, -h         | Show this help content |
+|   --version, -v      | Shows the current version |
+|   --verbose          | Show log/debugging messages |
+|   --alert <Int>      | If any process passes this <Int>%, the alert is triggered<br/>Default is 90% |
+|   --limit <Int>      | If any process passes this <Int>%, it is killed on sight<br/>Default is 0% (use 0 to  |disable this option)
+|   --interval <Int>   | Interval time (in seconds) for checking top processes<br/>Default is 5 |
+|   --ignore [Str]     | A list of programs that are ignore |
+|   --alert-ignored    | Should show the alert, even for ignored programs when they.<br/>cross the line? |
+|   --interactive      | Starts NOT as a daemon, but interactive in the current<br/>terminal. You can use Ctrl+C to exit. |
 
-  Examples:
+## Examples:
 
+Just start it with default options:
 ```sh
-killcommand --alert=50 --limit=80 --ignore=gimp --ignore=blender
+~$ killcommand
+```
+
+Then stop it:
+```sh
+~$ killcommand --stop
+```
+
+Start daemon with specific limits and ignoring glimpse and blender processes
+```sh
+~$ killcommand --alert=50 --limit=80 --ignore=glimpse --ignore=blender
+```
+
+Ignoring all chrome processes including their renderers
+```sh
+~$ killcommand --ignore="%google%chrome%"
 ```
 
 ### Developing

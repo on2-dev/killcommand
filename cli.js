@@ -3,7 +3,7 @@
 const { spawn, exec } = require('child_process');
 const arg = require('arg');
 
-const DEFAULT_CPU_THRESHOLD = 75;
+const DEFAULT_CPU_THRESHOLD = 90;
 const DEFAULT_CPU_LIMIT = 0;
 const DEFAULT_INTERVAL = 5;
 
@@ -82,7 +82,6 @@ Available options:
 function run () {
   if (args['--list']) {
     exec('npm run ls');
-    console.log('Retrieving the list');
     exec('npm run ls', (error, stdout, stderr) => {
       console.log(stdout);
       process.exit(0);
@@ -93,8 +92,6 @@ function run () {
   if (args['--stop']) {
     exec('npm run stop', (error, stdout, stderr) => {
       if (!error) {
-        // console.error(error, stderr);
-        // return process.exit(0);
         console.log('Killcommand finished its job');
         console.log('Not running in background anymore');
       } else {
@@ -128,8 +125,6 @@ function run () {
     command.push('--verbose');
   }
   
-  console.log('FINAL COMMAND\nnpm ', command.join(' '));
-  
   const running = spawn('npm', command, {shell:true});
   running.stdout.on('data', (data) => {
     if (args['--verbose']) {
@@ -145,16 +140,8 @@ function run () {
   });
 
   running.on('close', (code) => {});
-
-  // exec(
-  //   command.join(' '),
-  //   (error, stdout, stderr) => {
-  //   if (error) {
-  //     console.error(error, stderr);
-  //     return process.exit(0);
-  //   }
-  //   console.log(stdout, stderr);
-  // });
+  console.log('Starting killcommand in background.');
+  console.log('To stop it, run `killcommand --stop`');
 }
 
 run();

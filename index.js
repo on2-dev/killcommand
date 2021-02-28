@@ -51,13 +51,12 @@ const cpuThreshold = args['--cpu-alert'] || DEFAULT_CPU_THRESHOLD;
 
 function check () {
   if (waiting) {
-    return; // reRun();
+    return;
   }
 
   const args = [
     '-c',
     `ps aux | sort -k 3,3 | tail -n 1`
-    // `aux | tail -n 2`
   ];
   const p = spawn('sh', args);
 
@@ -70,7 +69,7 @@ function check () {
     log(`Current top proccess is ${pid}, consumming ${usage}% of CPU`);
 
     if (usage > cpuThreshold) {
-      log(`This corsses the threshold limit for alerts (${cpuThreshold})`);
+      log(`This crosses the threshold limit for alerts (${cpuThreshold})`);
       exec(`ps -p ${pid} -o comm=`, (error, stdout, stderr) => {
         log(`Looking up for ${pid}'s name`);
         if (error) {
@@ -100,13 +99,12 @@ function check () {
             log(`But as alert-ignored is true, an alert will be triggered`);
             killOnSight = false;
           } else {
-            return;// reRun();
+            return;
           }
         }
 
         if (killOnSight) {
           die(pid);
-          // reRun();
           return;
         }
 
@@ -115,12 +113,10 @@ function check () {
         notifier.notify(
           {
             id: pid,
-            // remove: 123,
             title: `Should I kill it?`,
             message: `${program} (pid ${pid}) is consuming ${usage}% of your CPU`,
             sound: true,
             wait: true,
-            // time: 50000,
             timeout: 50000,
             type: 'warn',
             contentImage: "https://github.com/on2-dev/killcommand/raw/main/killcommand-header.png?raw=true",
@@ -138,23 +134,19 @@ function check () {
               if (metadata.activationValue === "Ignore it from now on") {
                 ignoredList.push(pid);
                 log(`Will ignore ${pid} from now on (${program})`)
-                return; // reRun();
+                return;
               }
 
               if (metadata.activationValue === "Kill it!") {
                 die(pid);
-                return; // reRun();
+                return;
               }
-
-              // otherwise, we simply show it some mercy ... for now!
             }
-            // reRun();
           }
         );
       });
     } {
       log('Top process is behaving well', waiting);
-      // reRun();
     }
   });
 
@@ -162,16 +154,7 @@ function check () {
     console.error(`stderr: ${data}`);
   });
   
-  p.on('close', (code) => {
-    console.log('');
-    console.log('CLOSED');
-    console.log('');
-  //   log("Finished, scheduled for the next 5 seconds");
-  //   if (!waiting) {
-  //     reRun();
-  //   }
-  //   delete p;
-  });
+  // p.on('close', (code) => {/* ... */});
 }
 
 function isIgnored (program, pid) {
@@ -194,16 +177,11 @@ async function die (pid, programName) {
   try {
     log(`Will kill ${programName} (${pid})`);
     await fkill(parseInt(pid, 10));
-    log(`Done`);
   } catch (error) {
-    log(`Failed killing ${programName} (${pid})`, error);
-    console.error(error);
+    log(`Failed killing ${programName} (${pid}), it must have already be gone by now.\n`, error);
     // if failed, the process is probably already gone
   }
+  log(`Consider it Done`);
 }
-
-// function reRun () {
-  // setTimeout(check, (args['--interval'] || DEFAULT_INTERVAL) * 1000);
-// }
 
 setInterval(check, (args['--interval'] || DEFAULT_INTERVAL) * 1000);
