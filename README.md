@@ -7,7 +7,7 @@
 So...I heard some processes of yours aren't behaving!  
 I will hunt the ones that cross the line and let you know. And if you want them gone, just trust your friend here.
 
-You can specify the threshold to be alerted when any process corsses the line,
+You can specify the threshold to be alerted when any process crosses the line,
 or even define a limit which should kill any process that dares crossing it!
 
 You're welcome.

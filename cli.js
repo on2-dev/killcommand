@@ -1,16 +1,26 @@
 #!/usr/bin/env node
 
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const arg = require('arg');
 
 const DEFAULT_CPU_THRESHOLD = 90;
 const DEFAULT_CPU_LIMIT = 0;
 const DEFAULT_INTERVAL = 5;
 
+const availableCommands = {
+  start     :       `Default action if you don't send any command`,
+  stop      :       `Stops the current daemon, if any`,
+  top       :       `Shows a list with the current top processes`,
+  kill      :       `Shows a list with the current top processes`,
+  // target    :       `Targets a process to be killed whenever it is detected,
+  //                    no matter how much process it's using`,
+};
+
 const commands = {
 	// Types
-  '--stop'          : Boolean,
-  '--list'          : Boolean,
+  '--start'        : Boolean,
+  '--stop'         : Boolean,
+  '--list'         : Boolean,
 	'--help'         : Boolean,
 	'--version'      : Boolean,
 	'--verbose'      : Boolean,
@@ -22,11 +32,12 @@ const commands = {
 	'--alert-ignored': Boolean,
 
 	// Aliases
-	'-v':        '--version',
-	'-h':        '--help',
-	'-i':        '--ignore',
-	'--alert':   '--cpu-alert',
-	'--limit':   '--cpu-limit',
+	'--watch'        : '--start',
+	'-v'             : '--version',
+	'-h'             : '--help',
+	'-i'             : '--ignore',
+	'--alert'        : '--cpu-alert',
+	'--limit'        : '--cpu-limit',
 };
 
 const args = arg(commands);
@@ -45,8 +56,11 @@ or even define a limit which should kill any process that dares crossing it!
 
 Available options:
 
-  --stop             Stops the current daemon, if any
-  --list             Shows information on currently running daemon
+  start              Default action if you don't send any command
+  stop               Stops the current daemon, if any
+  top                Shows a list with the current top processes
+  kill               Kills a given process by pid, name or port (examples below)
+  --list             Shows information on currently running killcommand daemon
   --help, -h         Show this help content
   --version, -v      Shows the current version
   --verbose          Show log/debugging messages
@@ -80,16 +94,16 @@ Available options:
 }
 
 function run () {
-  if (args['--list']) {
-    exec('npm run ls');
-    exec('npm run ls', (error, stdout, stderr) => {
-      console.log(stdout);
-      process.exit(0);
-    });
-    return;
-  }
+  let keyCommandPosition = 2;
+  let keyCommand = Array.from(process.argv).find((item, i) => {
+    const found = (!item.match(/^[\.\-\/]/) && availableCommands[item]);
+    if (found) {
+      keyCommandPosition = i;
+    }
+    return found;
+  }) || 'start';
 
-  if (args['--stop']) {
+  if (keyCommand === 'stop' || args['--stop']) {
     exec('npm run stop', (error, stdout, stderr) => {
       if (!error) {
         console.log('Killcommand finished its job');
@@ -97,6 +111,42 @@ function run () {
       } else {
         console.log('Killcommand wasn\'t running in background');
       }
+      process.exit(0);
+    });
+    return;
+  }
+  
+  if (keyCommand === 'top' || args['--top']) {
+    exec('ps aux | tail +2 | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
+      const line = '+---------+---------+-------------------'
+      console.log(line);
+      console.log( '|   PID   |   CPU   | Process Name');
+      console.log(line);
+      stdout.split('\n').forEach((data, i) => {
+        const outputStr = data.toString();
+        const output = outputStr.split(/ +/g, 3);
+        const usage = parseFloat(output.pop());
+        const pid = output.pop();
+        if (!pid) {
+          return;
+        }
+        try {
+          const nameResult = execSync(`ps -p ${pid} -o comm=`).toString();
+          const program = nameResult.substr(nameResult.lastIndexOf('/') + 1).trim();
+          const logStr = `| ${pid.toString().padEnd(7)} | ${(usage.toString() + '%').padStart(7)} | ${program.substr(-60)}`
+          console.log(logStr);
+        } catch (error) {
+          
+        }
+      });
+      console.log(line);
+    });
+    return;
+  }
+
+  if (args['--list']) {
+    exec('npm run ls', (error, stdout, stderr) => {
+      console.log(stdout);
       process.exit(0);
     });
     return;
