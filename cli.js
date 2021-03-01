@@ -256,7 +256,7 @@ async function run () {
   }
   
   if (keyCommand === 'top' || args['--top']) {
-    exec('ps aux | tail +2 | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
+    exec('ps aux | sed 1d | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
       const line = '+---------+---------+-------------------'
       console.log(line);
       console.log( '|   PID   |   CPU   | Process Name');
@@ -297,9 +297,9 @@ async function run () {
     'run',
     args['--interactive'] ? 'interactive' : 'start',
     '--',
-    `--cpu-alert=${args['--cpu-alert'] || DEFAULT_CPU_THRESHOLD}`,
-    `--cpu-limit=${args['--cpu-limit'] || DEFAULT_CPU_LIMIT}`,
-    `--interval=${args['--interval'] || DEFAULT_INTERVAL}`
+    `--cpu-alert=${parseInt(args['--cpu-alert'], 10) || DEFAULT_CPU_THRESHOLD}`,
+    `--cpu-limit=${parseInt(args['--cpu-limit'], 10) || DEFAULT_CPU_LIMIT}`,
+    `--interval=${parseInt(args['--interval'], 10) || DEFAULT_INTERVAL}`
   ];
 
   if (args['--ignore'] && args['--ignore'].length) {

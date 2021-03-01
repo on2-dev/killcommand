@@ -56,7 +56,7 @@ function check () {
 
   const args = [
     '-c',
-    `ps aux | sort -k 3,3 | tail -n 1`
+    `ps aux | sed 1d | sort -k 3,3 | tail -n 1`
   ];
   const p = spawn('sh', args);
 
