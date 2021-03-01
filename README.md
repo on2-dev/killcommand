@@ -30,6 +30,15 @@ npm install -g killcommand
 killcommand [--options]
 ```
 
+## Commands
+
+| Command     | Description  |
+| ----------- |:-------------|
+|   start     | Default action if you don't send any command |
+|   stop      | Stops the current daemon, if any |
+|   top       | Shows a list with the current top processes |
+|   kill      | Kills a given command by pid, name or port that it's using |
+
 ## Options
 
 Available options:
@@ -53,14 +62,22 @@ Available options:
 Just start it with default options:
 ```sh
 ~$ killcommand
+~$ # OR
+~$ killcommand start
 ```
 
-Then stop it:
+Stop it:
 ```sh
-~$ killcommand --stop
+~$ killcommand stop
 ```
 
-Start daemon with specific limits and ignoring glimpse and blender processes
+See top processes and their names:
+```sh
+~$ killcommand top
+```
+
+start daemon ignoring glimpse and blender processes
+Also, will alert if any process reaches 50% of CPU, and automatically kill any process that crosses the 80% limit (except the ignored ones):
 ```sh
 ~$ killcommand --alert=50 --limit=80 --ignore=glimpse --ignore=blender
 ```
@@ -91,7 +108,7 @@ Header: <a href='https://br.freepik.com/vetores/homem'>Homem vetor criado por fr
 - By sending feedback or opening the issues
 - By donating:
 
-Buy us a coffee :)
+**Buy us a coffee :)**
 
 BTC: 1GuTME1bGbk7hY7ssrUBh3M1k4AeyVCSjW<br/>
 ETH: 0x49f1612d4a8e9165f2eb94be79af9dbbf3815af5

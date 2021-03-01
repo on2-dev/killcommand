@@ -81,7 +81,7 @@ function check () {
           console.log(`stderr: ${stderr}`);
           return;
         }
-        
+
         const program = stdout.substr(stdout.lastIndexOf('/') + 1).trim();
         log(`Found ${program}`);
 
