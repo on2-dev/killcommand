@@ -33,27 +33,28 @@ const availableCommands = {
 
 const commands = {
 	// Types
-  '--start'        : Boolean,
-  '--stop'         : Boolean,
-  '--list'         : Boolean,
-	'--help'         : Boolean,
-	'--version'      : Boolean,
-	'--verbose'      : Boolean,
-	'--cpu-alert'    : Number,
-	'--cpu-limit'    : Number,
-	'--interval'     : Number,
-	'--ignore'       : [String],
-	'--interactive'  : Boolean,
-	'--alert-ignored': Boolean,
-	'--yes'          : Boolean,
+  '--start'               : Boolean,
+  '--stop'                : Boolean,
+  '--list'                : Boolean,
+	'--help'                : Boolean,
+	'--version'             : Boolean,
+	'--verbose'             : Boolean,
+	'--cpu-alert'           : Number,
+	'--cpu-limit'           : Number,
+	'--interval'            : Number,
+	'--ignore'              : [String],
+	'--interactive'         : Boolean,
+	'--alert-ignored'       : Boolean,
+	'--yes'                 : Boolean,
 
 	// Aliases
-	'--watch'        : '--start',
-	'-v'             : '--version',
-	'-h'             : '--help',
-	'-i'             : '--ignore',
-	'--alert'        : '--cpu-alert',
-	'--limit'        : '--cpu-limit',
+	'--watch'               : '--start',
+	'-v'                    : '--version',
+	'-h'                    : '--help',
+	'-i'                    : '--ignore',
+	'--alert'               : '--cpu-alert',
+	'--limit'               : '--cpu-limit',
+	'--no-questions-asked'  : '--yes',
 };
 
 const args = arg(commands);
@@ -114,8 +115,19 @@ Available options:
   # any process that crosses the 80% limit (except the ignored ones)
   ~$ killcommand --alert=50 --limit=80 --ignore=glimpse --ignore=blender
 
-  # ignores all chrome processes including their renderers
+  # Ignores all chrome processes including their renderers
   ~$ killcommand --ignore="%google%chrome%"
+
+  # Kills all tabs of brave browser
+  ~$ killcommand kill "%brave%renderer%"
+
+  # Kills all tabs of brave browser answering yes to any question
+  ~$ killcommand kill "%brave%renderer%" --yes
+  ~$ # OR
+  ~$ killcommand kill "%brave%renderer%" --no-questions-asked
+
+  # Kills whichever program is listening in port 3000
+  ~$ killcommand kill :3000
 
 `);
 
@@ -167,6 +179,26 @@ async function run () {
     } else {
       if (killTarget.startsWith(':')) {
         // should kill the process that uses a given port
+        const port = parseInt(killTarget.substring(1), 10);
+        const command = `lsof -i:${port} | tail -1`;
+        const result = execSync(command).toString();
+        const parts = result.split(/ +/g, 3);
+        const program = parts[0];
+        const pid = parts[1];
+
+        if (!pid) {
+          console.log('Could not fine any a target to kill!');
+          return;
+        }
+
+        if (!args['--yes']) {
+          const answer = await askQuestion(`The program ${program} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `);
+          if (answer.match(/^[nN]/)) {
+            return;
+          }
+        }
+        await die(pid);
+        console.log('Consider it done');
         return;
       }
 
@@ -193,7 +225,7 @@ async function run () {
 
       if (keys.length === 1) {
         await die(keys[0]);
-        return console.log('Consider it done.');
+        return console.log('Consider it done');
       }
 
       keys.forEach(pid => {

@@ -37,7 +37,7 @@ killcommand [--options]
 |   start     | Default action if you don't send any command |
 |   stop      | Stops the current daemon, if any |
 |   top       | Shows a list with the current top processes |
-|   kill      | Kills a given command by pid, name or port that it's using |
+|   kill      | Kills a given command by pid, name or port that it's using.<br/>See examples bellow |
 
 ## Options
 
@@ -85,6 +85,23 @@ Also, will alert if any process reaches 50% of CPU, and automatically kill any p
 Ignoring all chrome processes including their renderers
 ```sh
 ~$ killcommand --ignore="%google%chrome%"
+```
+
+Kills all tabs of brave browser
+```sh
+~$ killcommand kill "%brave%renderer%"
+```
+
+Kills all tabs of brave browser automatically answering yes to any question
+```sh
+~$ killcommand kill "%brave%renderer%" --yes
+~$ # OR
+~$ killcommand kill "%brave%renderer%" --no-questions-asked
+```
+
+Kills whichever program is listening in port 3000
+```sh
+~$ killcommand kill :3000
 ```
 
 ### Developing
