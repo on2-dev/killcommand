@@ -27,7 +27,7 @@ npm install -g killcommand
 ## Running it
 
 ```sh
-killcommand [--options]
+killcommand [command] [--options]
 ```
 
 ## Commands
@@ -76,8 +76,8 @@ See top processes and their names:
 ~$ killcommand top
 ```
 
-start daemon ignoring glimpse and blender processes
-Also, will alert if any process reaches 50% of CPU, and automatically kill any process that crosses the 80% limit (except the ignored ones):
+Start daemon ignoring glimpse and blender processes.<br/>
+Also, will alert if any process reaches 50% of CPU and automatically kill any process that crosses the 80% limit (except the ignored ones):
 ```sh
 ~$ killcommand --alert=50 --limit=80 --ignore=glimpse --ignore=blender
 ```
