@@ -130,6 +130,7 @@ function run () {
         if (!pid) {
           return;
         }
+        
         try {
           const nameResult = execSync(`ps -p ${pid} -o comm=`).toString();
           const program = nameResult.substr(nameResult.lastIndexOf('/') + 1).trim();
