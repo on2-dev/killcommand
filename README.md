@@ -118,7 +118,6 @@ node ./cli.js --interactive --verbose [--other-options]
 
 Header: <a href='https://br.freepik.com/vetores/homem'>Homem vetor criado por freepik - br.freepik.com</a></sub></small>
 
-
 # Contribute
 
 - By sending Pull Requests

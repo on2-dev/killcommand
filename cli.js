@@ -25,6 +25,7 @@ const availableCommands = {
   start     :      `Default action if you don't send any command`,
   stop      :      `Stops the current daemon, if any`,
   top       :      `Shows a list with the current top processes`,
+  list      :      `Alias to --list. Shows instances of killcommand running`,
   kill      :      `Kills a given command by pid, name or port that it's using
                      (See Examples bellow)`,
   // target    :       `Targets a process to be killed whenever it is detected,
@@ -158,7 +159,7 @@ async function run () {
   }) || 'start';
 
   if (keyCommand === 'stop' || args['--stop']) {
-    exec('npm run stop', (error, stdout, stderr) => {
+    exec('npm run stop', { cwd: __dirname }, (error, stdout, stderr) => {
       if (!error) {
         console.log('Killcommand finished its job');
         console.log('Not running in background anymore');
@@ -172,6 +173,9 @@ async function run () {
 
   if (keyCommand === 'kill') {
     const killTarget = process.argv[keyCommandPosition + 1];
+    if (!killTarget) {
+      return console.log('Who\'s the target?');
+    }
     if (!isNaN(killTarget)) {
       // should kill by its PID
       await die(killTarget);
@@ -261,7 +265,7 @@ async function run () {
       console.log(line);
       console.log( '|   PID   |   CPU   | Process Name');
       console.log(line);
-      stdout.split('\n').forEach((data, i) => {
+      stdout.split('\n').reverse().forEach((data, i) => {
         const outputStr = data.toString();
         const output = outputStr.split(/ +/g, 3);
         const usage = parseFloat(output.pop());
@@ -285,8 +289,8 @@ async function run () {
     return;
   }
 
-  if (args['--list']) {
-    exec('npm run ls', (error, stdout, stderr) => {
+  if (keyCommand === 'list' || args['--list']) {
+    exec('npm run ls', { cwd: __dirname }, (error, stdout, stderr) => {
       console.log(stdout);
       process.exit(0);
     });
@@ -316,7 +320,8 @@ async function run () {
     command.push('--verbose');
   }
   
-  const running = spawn('npm', command, {shell:true});
+  // start
+  const running = spawn('npm', command, { shell: true, cwd: __dirname });
   running.stdout.on('data', (data) => {
     if (args['--verbose']) {
       const out = data.toString().trim();
@@ -332,7 +337,7 @@ async function run () {
 
   running.on('close', (code) => {});
   console.log('Starting killcommand in background.');
-  console.log('To stop it, run `killcommand --stop`');
+  console.log('To stop it, run `killcommand stop`');
 }
 
 async function die (pid) {

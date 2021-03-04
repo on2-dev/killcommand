@@ -31,9 +31,9 @@
     "node-notifier": "^9.0.0"
   },
   "scripts": {
-    "interactive": "node ./index.js",
-    "start": "forever start --minUptime 5100 --spinSleepTime 6000 -o ./forever/logs/running.log -e ./forever/logs/error-running.log --id killcommand ./index.js",
-    "stop": "forever stop killcommand",
+    "interactive": "node ./cli.js --interactive",
+    "start": "forever start -max 5 --minUptime 5100 --spinSleepTime 6000 -o ./forever/logs/running.log -e ./forever/logs/error-running.log --id killcommand ./index.js",
+    "stop": "forever stop -t killcommand",
     "ls": "forever list",
     "??stop": "node ./cli.js --stop",
     "??ls": "node ./cli.js --ls",
