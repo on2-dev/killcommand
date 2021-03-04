@@ -217,6 +217,7 @@ async function run () {
         }
         const pid = line.split(' ', 2)[0];
         const pName = getProcessNameFromPID(pid);
+        console.log(line.substring(0, 120));
         if (pName) {
           listOfTargets[pid] = pName;
         }

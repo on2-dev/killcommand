@@ -1,5 +1,7 @@
 # Kill Command
 
+**STILL IN BETA**
+
 <div style="text-align:center">
   <img src="https://github.com/on2-dev/killcommand/blob/main/killcommand-header.png?raw=true" title="Looking for the new victim" alt="" />
 </div>
