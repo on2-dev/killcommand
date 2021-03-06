@@ -36,8 +36,8 @@ killcommand [command] [--options]
 
 | Command     | Description  |
 | ----------- |:-------------|
-|   start     | Default action if you don't send any command |
-|   stop      | Stops the current daemon, if any |
+|   start     | Starts killcommand (Default action if you don't send any command) |
+|   stop      | Stops killcommand, if running |
 |   top       | Shows a list with the current top processes |
 |   kill      | Kills a given command by pid, name or port that it's using.<br/>See examples bellow |
 
