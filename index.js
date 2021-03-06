@@ -9,6 +9,7 @@ const notifier = require('node-notifier');
 const DEFAULT_CPU_THRESHOLD = 75;
 const DEFAULT_CPU_LIMIT = 0;
 const DEFAULT_INTERVAL = 5;
+let   LATAST_TOP_PROC = null; // TODO: warn only if the same process is abot the line twice
 
 // const NotificationCenter = require('node-notifier').NotificationCenter;
 // const notifier = new NotificationCenter({
