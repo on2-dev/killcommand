@@ -31,11 +31,8 @@
     "node-notifier": "^9.0.0"
   },
   "scripts": {
-    "interactive": "node ./index.js",
+    "interactive": "node ./index.js --interactive",
     "start": "node ./index.js",
-    "stop": "node ./index.js stop",
-    "xxxstart": "forever start -max 5 --minUptime 5100 --spinSleepTime 6000 -o ./forever/logs/running.log -e ./forever/logs/error-running.log --id killcommand ./index.js",
-    "xxxstop": "forever stop -t killcommand",
-    "ls": "forever list"
+    "stop": "node ./index.js stop"
   }
 }

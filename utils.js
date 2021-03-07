@@ -3,6 +3,21 @@ const fkill = require('fkill');
 const readline  = require('readline');
 
 const utils = {
+  identifier: 'killcommand-daemon-identifier',
+
+  isDaemonRunning: () => {
+    const command = `ps aux | grep "${utils.identifier}" | grep -v grep`;
+    try {
+      const result = execSync(command).toString();
+      if (result && result.length) {
+        return result.split(/( +)/g)[2];
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  },
+
   getProcessNameFromPID : (pid) => {
     if (!pid) {
       return null;

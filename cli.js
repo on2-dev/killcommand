@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-const utils     = require('./utils');
+const path      = require('path');
 const { spawn } = require('child_process');
 const arg       = require('arg');
+const { die }   = require('./utils');
+const utils     = require('./utils');
 
 const DEFAULT_CPU_THRESHOLD = 90;
 const DEFAULT_CPU_LIMIT = 0;
@@ -19,7 +21,7 @@ const availableCommands = {
   //                    no matter how much process it's using`,
 };
 
-const commands = {
+const options = {
 	// Types
   '--start'               : Boolean,
   '--stop'                : Boolean,
@@ -45,16 +47,18 @@ const commands = {
 	'--no-questions-asked'  : '--yes',
 };
 
-const args = arg(commands);
+const args = arg(options);
 
-if (args['--version']) {
-  const v = require('./package.json').version;
-  console.log(v);
-  return;
-}
+async function run () {
 
-if (args['--help']) {
-  console.log(`
+  if (args['--version']) {
+    const v = require('./package.json').version;
+    console.log(v);
+    return;
+  }
+
+  if (args['--help']) {
+    console.log(`
 Will alert or kill processes that cross the limit!
 You can specify the threshold to be alerted when any process corsses the line,
 or even define a limit which should kill any process that dares crossing it!
@@ -126,11 +130,10 @@ Available options:
   # Get the list of processes from "Google Chrome" browser, but only the renderers (tabs):
   ~$ killcommand list "chrome%renderer"
 `);
-
-  return;
-}
-
-async function run () {
+    return;
+  }
+  
+  // Let's get the command and its value if any
   let keyCommandPosition = 2;
   let keyCommand = Array.from(process.argv).find((item, i) => {
     const found = (!item.match(/^[\.\-\/]/) && availableCommands[item]);
@@ -139,22 +142,32 @@ async function run () {
     }
     return found;
   }) || 'start';
-
+  
   if (keyCommand === 'stop' || args['--stop']) {
+    const daemonPID = utils.isDaemonRunning();
+    if (daemonPID) {
+      await die(daemonPID);
+      return console.log('Killcommand is done here');
+    }
+    return console.log('Killcommand wasn\'t running in background');
+  }
+  
+  if (keyCommand === 'top' || args['--top']) {
+    const lines = await utils.top();
+    const line = '+---------+---------+-------------------'
+    console.log(line);
+    console.log( '|   PID   |   CPU   | Process Name');
+    console.log(line);
 
-    // exec('npm run stop', { cwd: __dirname }, (error, stdout, stderr) => {
-    //   if (!error) {
-    //     console.log('Killcommand finished its job');
-    //     console.log('Not running in background anymore');
-    //   } else {
-    //     console.log('Killcommand wasn\'t running in background');
-    //   }
-    //   process.exit(0);
-    // });
+    lines.forEach(p => {
+      console.log(`| ${p.pid.toString().padEnd(7)} | ${(p.usage.toString() + '%').padStart(7)} | ${p.name.substr(-60)}`);
+    });
+
+    console.log(line);
     return;
   }
 
-  // kill command: `killcommand kill [123|xyz|:4321]
+  // kill : `killcommand kill [123|xyz|:4321]
   if (keyCommand === 'kill') {
     const killTarget = process.argv[keyCommandPosition + 1];
     if (!killTarget) {
@@ -162,28 +175,35 @@ async function run () {
     }
 
     if (!isNaN(killTarget)) {
-      await utils.die(killTarget);                                                    // should kill by its PID
+      await utils.die(killTarget);                                              // should kill by its PID
       return;
     } else {
       if (killTarget.startsWith(':')) {
+        // if user is trying to kill a process by its port, we should check on that first
+        // we will ask the user if they are sure about it
+        // (unless we received --yes or --no-questions-asked)
         const [pid, name] = utils.getProcessesBy(killTarget)[0] || {};
         if (!pid) {
           console.log('Could not find any a target to kill!');
           return;
         }
 
+        // let's confirm that with the user 
         if (!args['--yes']) {
-          const answer = await utils.askQuestion(`The program ${name} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `);
+          const q =`The program ${name} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `;
+          const answer = await utils.askQuestion(q);
           if (answer.match(/^[nN]/)) {
             return;
           }
         }
+
+        // on systems go ... kill it!
         await utils.die(pid);
         console.log('Consider it done');
         return;
       }
 
-      // should kill the process by its name
+      // not a port, should kill the process by its name
       const programs = utils.getProcessesBy(killTarget);
 
       if (!programs.length) {
@@ -219,21 +239,6 @@ async function run () {
     }
     return;
   }
-  
-  if (keyCommand === 'top' || args['--top']) {
-    const lines = await utils.top();
-    const line = '+---------+---------+-------------------'
-    console.log(line);
-    console.log( '|   PID   |   CPU   | Process Name');
-    console.log(line);
-
-    lines.forEach(p => {
-      console.log(`| ${p.pid.toString().padEnd(7)} | ${(p.usage.toString() + '%').padStart(7)} | ${p.name.substr(-60)}`);
-    });
-
-    console.log(line);
-    return;
-  }
 
   if (keyCommand === 'list' || args['--list']) {
     // list all processes by name or pid
@@ -250,13 +255,15 @@ async function run () {
     return;
   }
 
+  // start | --start
   let command = [
-    'run',
+    path.join(__dirname, 'index.js'),
     args['--interactive'] ? 'interactive' : 'start',
     '--',
     `--cpu-alert=${parseInt(args['--cpu-alert'], 10) || DEFAULT_CPU_THRESHOLD}`,
     `--cpu-limit=${parseInt(args['--cpu-limit'], 10) || DEFAULT_CPU_LIMIT}`,
-    `--interval=${parseInt(args['--interval'], 10) || DEFAULT_INTERVAL}`
+    `--interval=${parseInt(args['--interval'], 10) || DEFAULT_INTERVAL}`,
+    `--${utils.identifier}`,
   ];
 
   if (args['--ignore'] && args['--ignore'].length) {
@@ -273,9 +280,12 @@ async function run () {
     command.push('--verbose');
   }
   
-  // start
+  if (utils.isDaemonRunning()) {
+    return console.log('killcommand is already running');
+  }
+
   const running = spawn(
-    'npm',
+    'node',
     command,
     {
       shell: true,
