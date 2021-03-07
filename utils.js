@@ -1,5 +1,6 @@
 const { spawn, exec, execSync } = require('child_process');
 const fkill = require('fkill');
+const readline  = require('readline');
 
 const utils = {
   getProcessNameFromPID : (pid) => {
@@ -27,7 +28,7 @@ const utils = {
         if (parts.length < 3) {
           return [];
         }
-        
+
         return [{
           pid: parts[1],
           name: parts[0]
@@ -69,13 +70,62 @@ const utils = {
     }
   },
 
-  getRootProcessByName: async (pName) => {
-    const command = `pgrep -i -o "${pName}"`;
-    execSync(command).toString();
-  },
+  // getRootProcessByName: async (pName) => {
+  //   const command = `pgrep -i -o "${pName}"`;
+  //   execSync(command).toString();
+  // },
 
   die: async (pid) => {
     await fkill(parseInt(pid, 10));
+  },
+
+  top: () => {
+    return new Promise((resolve, reject) => {
+      exec('ps aux | sed 1d | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
+        if (error) {
+          return reject(error);
+        }
+
+        const list = [];
+
+        stdout
+          .split('\n')
+          .reverse()
+          .forEach((data, i) => {
+          const outputStr = data.toString();
+          const output = outputStr.split(/ +/g, 3);
+          const usage = parseFloat(output.pop());
+          const pid = output.pop();
+          if (!pid) {
+            return;
+          }
+  
+          try {
+            list.push({
+              pid,
+              usage,
+              name: utils.getProcessNameFromPID(pid)
+            })
+          } catch (error) {
+            // reject(error);
+          }
+        });
+
+        resolve(list);
+      });
+    });
+  },
+
+  askQuestion: (query) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+  
+    return new Promise(resolve => rl.question(query, ans => {
+      rl.close();
+      resolve(ans);
+    }))
   }
 };
 

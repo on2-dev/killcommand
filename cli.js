@@ -1,20 +1,8 @@
 #!/usr/bin/env node
-const utils = require('./utils');
-const { spawn, exec } = require('child_process');
-const arg = require('arg');
-const readline = require('readline');
 
-function askQuestion(query) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-
-    return new Promise(resolve => rl.question(query, ans => {
-        rl.close();
-        resolve(ans);
-    }))
-}
+const utils     = require('./utils');
+const { spawn } = require('child_process');
+const arg       = require('arg');
 
 const DEFAULT_CPU_THRESHOLD = 90;
 const DEFAULT_CPU_LIMIT = 0;
@@ -185,7 +173,7 @@ async function run () {
         }
 
         if (!args['--yes']) {
-          const answer = await askQuestion(`The program ${name} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `);
+          const answer = await utils.askQuestion(`The program ${name} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `);
           if (answer.match(/^[nN]/)) {
             return;
           }
@@ -212,7 +200,7 @@ async function run () {
       });
 
       if (!args['--yes']) {
-        const answer = await askQuestion(`I found ${programs.length} processes. Should I kill them all? (y/N)\n> `);
+        const answer = await utils.askQuestion(`I found ${programs.length} processes. Should I kill them all? (y/N)\n> `);
         if (!answer.match(/^[yY]/)) {
           // if user answered no
           return;
@@ -233,30 +221,17 @@ async function run () {
   }
   
   if (keyCommand === 'top' || args['--top']) {
-    exec('ps aux | sed 1d | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
-      const line = '+---------+---------+-------------------'
-      console.log(line);
-      console.log( '|   PID   |   CPU   | Process Name');
-      console.log(line);
-      stdout.split('\n').reverse().forEach((data, i) => {
-        const outputStr = data.toString();
-        const output = outputStr.split(/ +/g, 3);
-        const usage = parseFloat(output.pop());
-        const pid = output.pop();
-        if (!pid) {
-          return;
-        }
+    const lines = await utils.top();
+    const line = '+---------+---------+-------------------'
+    console.log(line);
+    console.log( '|   PID   |   CPU   | Process Name');
+    console.log(line);
 
-        try {
-          const program = utils.getProcessNameFromPID(pid);
-          const logStr = `| ${pid.toString().padEnd(7)} | ${(usage.toString() + '%').padStart(7)} | ${program.substr(-60)}`
-          console.log(logStr);
-        } catch (error) {
-          
-        }
-      });
-      console.log(line);
+    lines.forEach(p => {
+      console.log(`| ${p.pid.toString().padEnd(7)} | ${(p.usage.toString() + '%').padStart(7)} | ${p.name.substr(-60)}`);
     });
+
+    console.log(line);
     return;
   }
 
