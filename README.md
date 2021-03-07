@@ -18,7 +18,7 @@ You're welcome.
 
 ![image](https://user-images.githubusercontent.com/347387/109408982-6c483600-796d-11eb-97c6-2e21c7f1a1ec.png)
 
-
+Also, how to kill any process that is using a given port, you ask? Yeah, just let me know which port you want to free and I take care of that for you.
 
 ## Install
 
@@ -36,10 +36,11 @@ killcommand [command] [--options]
 
 | Command     | Description  |
 | ----------- |:-------------|
-|   start     | Default action if you don't send any command |
-|   stop      | Stops the current daemon, if any |
+|   start     | Starts killcommand (Default action if you don't send any command) |
+|   stop      | Stops killcommand, if running |
 |   top       | Shows a list with the current top processes |
 |   kill      | Kills a given command by pid, name or port that it's using.<br/>See examples bellow |
+|   list      | Alias to --list. Shows a list of running processes matching a pattern |
 
 ## Options
 
@@ -104,6 +105,21 @@ Kills all tabs of brave browser automatically answering yes to any question
 Kills whichever program is listening in port 3000
 ```sh
 ~$ killcommand kill :3000
+```
+
+Get the name of the process by its PID:
+```sh
+~$ killcommand list 1680
+```
+
+Get the list of processes from "Google Chrome" browser:
+```sh
+~$ killcommand list "chrome"
+```
+
+Get the list of processes from "Google Chrome" browser, but only the renderers (tabs):
+```sh
+~$ killcommand list "chrome%renderer"
 ```
 
 ### Developing

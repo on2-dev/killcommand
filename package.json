@@ -4,7 +4,7 @@
     "killcommand": "./cli.js"
   },
   "main": "./cli.js",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "preferGlobal": true,
   "keywords": [
     "kill",
@@ -27,13 +27,11 @@
   "dependencies": {
     "arg": "^5.0.0",
     "fkill": "^7.1.0",
-    "forever": "^3.0.4",
     "node-notifier": "^9.0.0"
   },
   "scripts": {
-    "interactive": "node ./index.js",
-    "start": "forever start -max 5 --minUptime 5100 --spinSleepTime 6000 -o ./forever/logs/running.log -e ./forever/logs/error-running.log --id killcommand ./index.js",
-    "stop": "forever stop -t killcommand",
-    "ls": "forever list"
+    "interactive": "node ./cli.js --interactive",
+    "start": "node ./cli.js",
+    "stop": "node ./cli.js stop"
   }
 }

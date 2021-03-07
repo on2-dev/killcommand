@@ -1,21 +1,10 @@
 #!/usr/bin/env node
 
-const { spawn, exec, execSync } = require('child_process');
-const arg = require('arg');
-const fkill = require('fkill');
-const readline = require('readline');
-
-function askQuestion(query) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-
-    return new Promise(resolve => rl.question(query, ans => {
-        rl.close();
-        resolve(ans);
-    }))
-}
+const path      = require('path');
+const { spawn } = require('child_process');
+const arg       = require('arg');
+const { die }   = require('./utils');
+const utils     = require('./utils');
 
 const DEFAULT_CPU_THRESHOLD = 90;
 const DEFAULT_CPU_LIMIT = 0;
@@ -25,14 +14,14 @@ const availableCommands = {
   start     :      `Default action if you don't send any command`,
   stop      :      `Stops the current daemon, if any`,
   top       :      `Shows a list with the current top processes`,
-  list      :      `Alias to --list. Shows instances of killcommand running`,
+  list      :      `Alias to --list. Shows a list of running processes matching a pattern`,
   kill      :      `Kills a given command by pid, name or port that it's using
                      (See Examples bellow)`,
   // target    :       `Targets a process to be killed whenever it is detected,
   //                    no matter how much process it's using`,
 };
 
-const commands = {
+const options = {
 	// Types
   '--start'               : Boolean,
   '--stop'                : Boolean,
@@ -58,16 +47,18 @@ const commands = {
 	'--no-questions-asked'  : '--yes',
 };
 
-const args = arg(commands);
+const args = arg(options);
 
-if (args['--version']) {
-  const v = require('./package.json').version;
-  console.log(v);
-  return;
-}
+async function run () {
 
-if (args['--help']) {
-  console.log(`
+  if (args['--version']) {
+    const v = require('./package.json').version;
+    console.log(v);
+    return;
+  }
+
+  if (args['--help']) {
+    console.log(`
 Will alert or kill processes that cross the limit!
 You can specify the threshold to be alerted when any process corsses the line,
 or even define a limit which should kill any process that dares crossing it!
@@ -130,25 +121,19 @@ Available options:
   # Kills whichever program is listening in port 3000
   ~$ killcommand kill :3000
 
+  # Get the name of the process by its PID:
+  ~$ killcommand list 1680
+
+  # Get the list of processes from "Google Chrome" browser:
+  ~$ killcommand list "chrome"
+
+  # Get the list of processes from "Google Chrome" browser, but only the renderers (tabs):
+  ~$ killcommand list "chrome%renderer"
 `);
-
-  return;
-}
-
-function getProcessNameFromPID (pid) {
-  if (!pid) {
-    return null;
+    return;
   }
-  try {
-    const nameResult = execSync(`ps -p ${pid} -o comm=`).toString();
-    const program = nameResult.substr(nameResult.lastIndexOf('/') + 1).trim();
-    return program;
-  } catch (error) {
-    return null;
-  }
-}
-
-async function run () {
+  
+  // Let's get the command and its value if any
   let keyCommandPosition = 2;
   let keyCommand = Array.from(process.argv).find((item, i) => {
     const found = (!item.match(/^[\.\-\/]/) && availableCommands[item]);
@@ -159,152 +144,126 @@ async function run () {
   }) || 'start';
 
   if (keyCommand === 'stop' || args['--stop']) {
-    exec('npm run stop', { cwd: __dirname }, (error, stdout, stderr) => {
-      if (!error) {
-        console.log('Killcommand finished its job');
-        console.log('Not running in background anymore');
-      } else {
-        console.log('Killcommand wasn\'t running in background');
-      }
-      process.exit(0);
+    const daemonPID = utils.isDaemonRunning();
+    if (daemonPID) {
+      await die(daemonPID);
+      return console.log('Killcommand is done here');
+    }
+    return console.log('Killcommand wasn\'t running in background');
+  }
+  
+  if (keyCommand === 'top' || args['--top']) {
+    const lines = await utils.top();
+    const line = '+---------+---------+-------------------'
+    console.log(line);
+    console.log( '|   PID   |   CPU   | Process Name');
+    console.log(line);
+
+    lines.forEach(p => {
+      console.log(`| ${p.pid.toString().padEnd(7)} | ${(p.usage.toString() + '%').padStart(7)} | ${p.name.substr(-60)}`);
     });
+
+    console.log(line);
     return;
   }
 
+  // kill : `killcommand kill [123|xyz|:4321]
   if (keyCommand === 'kill') {
     const killTarget = process.argv[keyCommandPosition + 1];
     if (!killTarget) {
       return console.log('Who\'s the target?');
     }
+
     if (!isNaN(killTarget)) {
-      // should kill by its PID
-      await die(killTarget);
+      await utils.die(killTarget);                                              // should kill by its PID
       return;
     } else {
       if (killTarget.startsWith(':')) {
-        // should kill the process that uses a given port
-        const port = parseInt(killTarget.substring(1), 10);
-        const command = `lsof -i:${port} | tail -1`;
-        const result = execSync(command).toString();
-        const parts = result.split(/ +/g, 3);
-        const program = parts[0];
-        const pid = parts[1];
-
+        // if user is trying to kill a process by its port, we should check on that first
+        // we will ask the user if they are sure about it
+        // (unless we received --yes or --no-questions-asked)
+        const [pid, name] = utils.getProcessesBy(killTarget)[0] || {};
         if (!pid) {
-          console.log('Could not fine any a target to kill!');
+          console.log('Could not find any a target to kill!');
           return;
         }
 
+        // let's confirm that with the user 
         if (!args['--yes']) {
-          const answer = await askQuestion(`The program ${program} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `);
+          const q =`The program ${name} (pid ${pid}) is using this port. Should I kill it? (Y/n)\n> `;
+          const answer = await utils.askQuestion(q);
           if (answer.match(/^[nN]/)) {
             return;
           }
         }
-        await die(pid);
+
+        // on systems go ... kill it!
+        await utils.die(pid);
         console.log('Consider it done');
         return;
       }
 
-      // should kill the process by its name
-      const command = `ps -A | grep "\\b${killTarget.replace(/%/g, '.*')}\\b" | grep -v "\bgrep\b"`;
-      const list = execSync(command).toString();
-      const listOfTargets = {};
-      list.split('\n').forEach(line => {
-        if (line.match(/(killcommand|\.\/cli\.js) kill /i)) {
-          // the kill command itself
-          return;
-        }
-        const pid = line.split(' ', 2)[0];
-        const pName = getProcessNameFromPID(pid);
-        console.log(line.substring(0, 120));
-        if (pName) {
-          listOfTargets[pid] = pName;
-        }
-      });
+      // not a port, should kill the process by its name
+      const programs = utils.getProcessesBy(killTarget);
 
-      const keys = Object.keys(listOfTargets);
-      if (!keys.length) {
+      if (!programs.length) {
         return console.log('No processes found matching that name!');
       }
 
-      if (keys.length === 1) {
-        await die(keys[0]);
+      if (programs.length === 1) {
+        await utils.die(programs[0].pid);
         return console.log('Consider it done');
       }
 
-      keys.forEach(pid => {
-        console.log(pid.toString().padEnd(8), listOfTargets[pid]);
+      process.forEach(({pid, name}) => {
+        console.log(pid.toString().padEnd(8), name);
       });
 
       if (!args['--yes']) {
-        // console.log('I found all these processes. Should I kill them all? (Y/n)');
-        const answer = await askQuestion(`I found ${keys.length} processes. Should I kill them all? (y/N)\n> `);
+        const answer = await utils.askQuestion(`I found ${programs.length} processes. Should I kill them all? (y/N)\n> `);
         if (!answer.match(/^[yY]/)) {
+          // if user answered no
           return;
         }
       }
       
-      console.log('Killing ' + (keys.length > 1 ? 'them all...' : 'it'));
-
+      console.log('Killing ' + (programs.length > 1 ? 'them all...' : 'it'));
       const promises = [];
-      keys.forEach(pid => {
-        promises.push(die(pid));
+      programs.forEach(({pid, name}) => {
+        promises.push(utils.die(pid));
       });
       await Promise.all(promises);
 
       console.log('Consider it done');
       return;
-      // console.log(list);
     }
-    return;
-  }
-  
-  if (keyCommand === 'top' || args['--top']) {
-    exec('ps aux | sed 1d | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
-      const line = '+---------+---------+-------------------'
-      console.log(line);
-      console.log( '|   PID   |   CPU   | Process Name');
-      console.log(line);
-      stdout.split('\n').reverse().forEach((data, i) => {
-        const outputStr = data.toString();
-        const output = outputStr.split(/ +/g, 3);
-        const usage = parseFloat(output.pop());
-        const pid = output.pop();
-        if (!pid) {
-          return;
-        }
-
-        try {
-          // const nameResult = getProcessNameFromPID(pid);
-          // const program = nameResult.substr(nameResult.lastIndexOf('/') + 1).trim();
-          const program = getProcessNameFromPID(pid);
-          const logStr = `| ${pid.toString().padEnd(7)} | ${(usage.toString() + '%').padStart(7)} | ${program.substr(-60)}`
-          console.log(logStr);
-        } catch (error) {
-          
-        }
-      });
-      console.log(line);
-    });
     return;
   }
 
   if (keyCommand === 'list' || args['--list']) {
-    exec('npm run ls', { cwd: __dirname }, (error, stdout, stderr) => {
-      console.log(stdout);
-      process.exit(0);
+    // list all processes by name or pid
+    const listTarget = process.argv[keyCommandPosition + 1];
+    if (!listTarget) {
+      return console.log('Who are you looking for?');
+    }
+
+    const listOfProcesses = utils.getProcessesBy(listTarget);
+    listOfProcesses.forEach(p => {
+      console.log(p.pid.toString().padEnd(7), p.name);
     });
+    console.log(`${listOfProcesses.length} processes matching "${listTarget}"`);
     return;
   }
 
+  // start | --start
   let command = [
-    'run',
-    args['--interactive'] ? 'interactive' : 'start',
-    '--',
+    // args['--interactive'] ? 'interactive' : 'start',
+    'start',
+    // '--',
     `--cpu-alert=${parseInt(args['--cpu-alert'], 10) || DEFAULT_CPU_THRESHOLD}`,
     `--cpu-limit=${parseInt(args['--cpu-limit'], 10) || DEFAULT_CPU_LIMIT}`,
-    `--interval=${parseInt(args['--interval'], 10) || DEFAULT_INTERVAL}`
+    `--interval=${parseInt(args['--interval'], 10) || DEFAULT_INTERVAL}`,
+    `--${utils.identifier}`,
   ];
 
   if (args['--ignore'] && args['--ignore'].length) {
@@ -316,33 +275,57 @@ async function run () {
   if (args['--alert-ignored']) {
     command.push('--alert-ignored');
   }
+  
+  if (args['--interactive']) {
+    command.push('--interactive');
+  }
 
   if (args['--verbose']) {
     command.push('--verbose');
   }
   
-  // start
-  const running = spawn('npm', command, { shell: true, cwd: __dirname });
-  running.stdout.on('data', (data) => {
-    if (args['--verbose']) {
-      const out = data.toString().trim();
-      console.log(out);
-    }
-  });
+  if (utils.isDaemonRunning()) {
+    return console.log('killcommand is already running');
+  }
 
-  running.stderr.on('data', (data) => {
-    if (args['--verbose']) {
-      console.log(data.toString().trim());
-    }
-  });
+  const opts = {
+    shell: true,
+    cwd: __dirname,
+  };
+
+  if (!args['--interactive']) {
+    opts.stdio = 'ignore';
+    opts.detached = true;
+  }
+
+  // will start daemon or interactive service
+  const running = spawn(
+    `node ${path.join(__dirname, 'index.js')} ${command.join(' ')}`,
+    [],
+    opts
+  );
+
+  if (args['--interactive']) {
+    running.stdout.on('data', (data) => {
+      if (args['--verbose']) {
+        const out = data.toString().trim();
+        console.log(out);
+      }
+    });
+  
+    running.stderr.on('data', (data) => {
+      if (args['--verbose']) {
+        console.log(data.toString().trim());
+      }
+    });
+  } else {
+    running.unref();
+  }
 
   running.on('close', (code) => {});
   console.log('Starting killcommand in background.');
   console.log('To stop it, run `killcommand stop`');
-}
 
-async function die (pid) {
-  await fkill(parseInt(pid, 10));
 }
 
 run();
