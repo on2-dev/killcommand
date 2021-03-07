@@ -27,7 +27,6 @@
   "dependencies": {
     "arg": "^5.0.0",
     "fkill": "^7.1.0",
-    "forever": "^3.0.4",
     "node-notifier": "^9.0.0"
   },
   "scripts": {
