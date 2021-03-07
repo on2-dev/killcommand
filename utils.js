@@ -1,4 +1,4 @@
-const { spawn, exec, execSync } = require('child_process');
+const { exec, execSync } = require('child_process');
 const fkill = require('fkill');
 const readline  = require('readline');
 
@@ -16,6 +16,30 @@ const utils = {
     } catch (error) {
       return false;
     }
+  },
+
+  getTopProcess: () => {
+    return new Promise((resolve, reject) => {
+      const command = `ps aux | sed 1d | sort -k 3,3 | tail -n 1`;
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          return resolve({ error });
+        }
+
+        const output = stdout.toString().split(/ +/g, 3);
+        const usage = parseFloat(output.pop());
+        const pid = output.pop();
+        if (!pid) {
+          return resolve(null);
+        }
+
+        return resolve({
+          pid,
+          usage,
+          name: utils.getProcessNameFromPID(pid)
+        });
+      });
+    });
   },
 
   getProcessNameFromPID : (pid) => {
@@ -96,7 +120,8 @@ const utils = {
 
   top: () => {
     return new Promise((resolve, reject) => {
-      exec('ps aux | sed 1d | sort -k 3,3 | tail -n 5', (error, stdout, stderr) => {
+      const command = 'ps aux | sed 1d | sort -k 3,3 | tail -n 5';
+      exec(command, (error, stdout, stderr) => {
         if (error) {
           return reject(error);
         }

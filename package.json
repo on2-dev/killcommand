@@ -4,7 +4,7 @@
     "killcommand": "./cli.js"
   },
   "main": "./cli.js",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "preferGlobal": true,
   "keywords": [
     "kill",
@@ -31,8 +31,8 @@
     "node-notifier": "^9.0.0"
   },
   "scripts": {
-    "interactive": "node ./index.js --interactive",
-    "start": "node ./index.js",
-    "stop": "node ./index.js stop"
+    "interactive": "node ./cli.js --interactive",
+    "start": "node ./cli.js",
+    "stop": "node ./cli.js stop"
   }
 }

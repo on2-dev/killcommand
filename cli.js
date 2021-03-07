@@ -142,7 +142,7 @@ Available options:
     }
     return found;
   }) || 'start';
-  
+
   if (keyCommand === 'stop' || args['--stop']) {
     const daemonPID = utils.isDaemonRunning();
     if (daemonPID) {
@@ -257,9 +257,9 @@ Available options:
 
   // start | --start
   let command = [
-    path.join(__dirname, 'index.js'),
-    args['--interactive'] ? 'interactive' : 'start',
-    '--',
+    // args['--interactive'] ? 'interactive' : 'start',
+    'start',
+    // '--',
     `--cpu-alert=${parseInt(args['--cpu-alert'], 10) || DEFAULT_CPU_THRESHOLD}`,
     `--cpu-limit=${parseInt(args['--cpu-limit'], 10) || DEFAULT_CPU_LIMIT}`,
     `--interval=${parseInt(args['--interval'], 10) || DEFAULT_INTERVAL}`,
@@ -275,6 +275,10 @@ Available options:
   if (args['--alert-ignored']) {
     command.push('--alert-ignored');
   }
+  
+  if (args['--interactive']) {
+    command.push('--interactive');
+  }
 
   if (args['--verbose']) {
     command.push('--verbose');
@@ -284,37 +288,44 @@ Available options:
     return console.log('killcommand is already running');
   }
 
+  const opts = {
+    shell: true,
+    cwd: __dirname,
+  };
+
+  if (!args['--interactive']) {
+    opts.stdio = 'ignore';
+    opts.detached = true;
+  }
+
+  // will start daemon or interactive service
   const running = spawn(
-    'node',
-    command,
-    {
-      shell: true,
-      cwd: __dirname,
-      detached: !args['--interactive'],
-      stdio: 'ignore'
-    }
+    `node ${path.join(__dirname, 'index.js')} ${command.join(' ')}`,
+    [],
+    opts
   );
 
-  // running.stdout.on('data', (data) => {
-  //   if (args['--verbose']) {
-  //     const out = data.toString().trim();
-  //     console.log(out);
-  //   }
-  // });
-
-  // running.stderr.on('data', (data) => {
-  //   if (args['--verbose']) {
-  //     console.log(data.toString().trim());
-  //   }
-  // });
+  if (args['--interactive']) {
+    running.stdout.on('data', (data) => {
+      if (args['--verbose']) {
+        const out = data.toString().trim();
+        console.log(out);
+      }
+    });
+  
+    running.stderr.on('data', (data) => {
+      if (args['--verbose']) {
+        console.log(data.toString().trim());
+      }
+    });
+  } else {
+    running.unref();
+  }
 
   running.on('close', (code) => {});
   console.log('Starting killcommand in background.');
   console.log('To stop it, run `killcommand stop`');
 
-  if (!args['--interactive']) {
-    running.unref();
-  }
 }
 
 run();
