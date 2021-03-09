@@ -4,7 +4,7 @@
     "killcommand": "./cli.js"
   },
   "main": "./cli.js",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "preferGlobal": true,
   "keywords": [
     "kill",

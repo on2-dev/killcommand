@@ -23,6 +23,7 @@ const availableCommands = {
 
 const options = {
 	// Types
+  '--try-message'         : Boolean,
   '--start'               : Boolean,
   '--stop'                : Boolean,
   '--list'                : Boolean,
@@ -182,7 +183,7 @@ Available options:
         // if user is trying to kill a process by its port, we should check on that first
         // we will ask the user if they are sure about it
         // (unless we received --yes or --no-questions-asked)
-        const [pid, name] = utils.getProcessesBy(killTarget)[0] || {};
+        const {pid, name} = utils.getProcessesBy(killTarget)[0] || {};
         if (!pid) {
           console.log('Could not find any a target to kill!');
           return;
@@ -284,6 +285,10 @@ Available options:
     command.push('--verbose');
   }
   
+  if (args['--try-message']) {
+    command.push('--try-message');
+  }
+  
   if (utils.isDaemonRunning()) {
     return console.log('killcommand is already running');
   }
@@ -323,9 +328,12 @@ Available options:
   }
 
   running.on('close', (code) => {});
-  console.log('Starting killcommand in background.');
-  console.log('To stop it, run `killcommand stop`');
-
+  if (args['--try-message']) {
+    console.log('Just giving it a try');
+  } else {
+    console.log('Starting killcommand in background.');
+    console.log('To stop it, run `killcommand stop`');
+  }
 }
 
 run();

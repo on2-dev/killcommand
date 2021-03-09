@@ -2,40 +2,84 @@
 const path            = require('path');
 const arg             = require('arg');
 const utils           = require('./utils');
-const notifier        = require('node-notifier');
 
 const DEFAULT_CPU_THRESHOLD = 75;
 const DEFAULT_CPU_LIMIT     = 0;
 const DEFAULT_INTERVAL      = 5;
 let   LATAST_TOP_PROC       = null;                                             // TODO: warn only if the same process is abot the line twice
 
-// const NotificationCenter = require('node-notifier').NotificationCenter;
-// const notifier = new NotificationCenter({
-//   withFallback: true, // Use Growl Fallback if <= 10.8
-//   customPath: path.join(__dirname, "terminal-notifier.app") // Relative/Absolute path to binary if you want to use your own fork of terminal-notifier
-// });
+const isMac = process.platform === 'darwin';
+const isBSD = process.platform.endsWith('bsd');
+const isWindows = process.platform.startsWith('win');
+
+let notifier = null;
+
+if (false && isMac) {
+  // on mac, we have to do this to change the icon and title in the notification
+  const NotificationCenter = require('node-notifier').NotificationCenter;
+  notifier = new NotificationCenter({
+    withFallback: true, // Use Growl Fallback if <= 10.8
+    // customPath: path.join(__dirname, "terminal-notifier.app/Contents/MacOS/terminal-notifier")                         // Relative/Absolute path to binary if you want to use your own fork of terminal-notifier
+    customPath: path.join(__dirname, "killcommand.app/Contents/MacOS/killcommand")                         // Relative/Absolute path to binary if you want to use your own fork of terminal-notifier
+  });
+} else {
+  notifier = require('node-notifier');
+}
 
 let waiting = false;
 
 const commands = {
 	// Types
-	'--interactive'  : Boolean,
-	'--verbose'      : Boolean,
-	'--cpu-alert'    : Number,
-	'--cpu-limit'    : Number,
-	'--interval'     : Number,
-	'--ignore'       : [String],
-	'--alert-ignored': Boolean,
-	'--killcommand-daemon-identifier': Boolean,
+	'--interactive'   : Boolean,
+	'--verbose'       : Boolean,
+	'--cpu-alert'     : Number,
+	'--cpu-limit'     : Number,
+	'--interval'      : Number,
+	'--ignore'        : [String],
+	'--alert-ignored' : Boolean,
+	'--try-message'   : Boolean,
 };
+
+commands[`--${utils.identifier}`] = Boolean;
+
 const args = arg(commands);
 
-let ignoredList = args['--ignore'] || [];
 function log(...data) {
   if (args['--verbose']) {
     console.log(...data);
   }
 }
+
+if (args['--try-message']) {
+  log(`| Will show a test message`);
+  notifier.notify(
+    {
+      id: 111,
+      title: `Just a test`,
+      message: `This is the text of the message.`,
+      sound: true,
+      wait: true,
+      timeout: 50000,
+      type: 'warn',
+      contentImage: path.join(__dirname, "killcommand-header.png"), //"https://github.com/on2-dev/killcommand/raw/main/killcommand-header.png?raw=true",
+      icon: path.join(__dirname, "killcommand-header.png"),
+      open: undefined,
+      closeLabel: undefined,
+      dropdownLabel: undefined,
+      actions: ["Kill it!", "Show mercy", "Ignore it from now on"],
+      sound: "glass" //Sosumi, Basso, Blow, Bottle, Frog, Funk, Glass, Hero, Morse, Ping, Pop, Purr, Submarine, Tink
+    },
+    async function (err, response, metadata) {
+      log(`| Notification closed, got response`);
+      if (response === 'activate') {
+        console.log(metadata.activationValue);
+      }
+    }
+  );
+  process.exit(0);
+}
+
+let ignoredList = args['--ignore'] || [];
 
 const cpuLimit = args['--cpu-limit'] || DEFAULT_CPU_LIMIT;
 const cpuThreshold = args['--cpu-alert'] || DEFAULT_CPU_THRESHOLD;
